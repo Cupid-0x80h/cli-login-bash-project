@@ -75,7 +75,7 @@ You can exit the script at any time by selecting the "Exit" option from the main
 1. **Clone the repository:**
 
    ```bash
-   git clone https://github.com/your-username/your-repository.git
+   [git clone https://github.com/your-username/your-repository.git](https://github.com/Cupid-0x80h/cli-login-bash-project.git)
    cd your-repository
    
 2. **Make the script executable:**
