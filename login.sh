@@ -2,7 +2,7 @@
 # The file names
 USER_CREDENTIALS_FILE=".user_credentials.csv"
 LOG_FILE="test_activity.log"
-ANSWER_FILE="TestData/answer_file.csv"
+ANSWER_FILE="$HOME/.TestData/answer_file.csv"
 QUESTION_BANK_FILE="question_bank.txt"
 TIMEOUT=10  # Timeout period in seconds
 
@@ -23,9 +23,9 @@ function log() {
 
 # Function to create answer csv file if not exist
 function answer_file_creation() {
-    if [ ! -d "$TEST_DATA_DIR" ]; then
-        mkdir -p "$TEST_DATA_DIR"
-        log "Created directory $TEST_DATA_DIR"
+    if [ ! -d "$USER_DIR/.TestData" ]; then
+        mkdir -p "$USER_DIR/.TestData"
+        log "Created directory $USER_DIR/.TestData"
     fi
 
     if [ ! -f "$ANSWER_FILE" ]; then
@@ -39,13 +39,14 @@ function answer_file_creation() {
     fi
 }
 
+
 # Function to print the welcome menu
 function menu_header() {
     clear
     echo "----------------------------"
     echo " Welcome to the Test System"
     echo "----------------------------"
-    echo "1. Sign In"
+    echo "1. Sign In "
     echo "2. Sign Up"
     echo "3. Exit"
     echo "----------------------------"
@@ -73,16 +74,25 @@ function view_test_screen() {
 # Function to conduct the test
 function test_screen() {
     local question
+    local options
+    local correct_answer
     local answer
     local answer_time
+    local score=0
 
     # Read all questions from the question bank
     mapfile -t QUESTION_BANK < "$QUESTION_BANK_FILE"
 
     # Randomly pick questions and ask
-    for question in "${QUESTION_BANK[@]}"; do
+    for question_data in "${QUESTION_BANK[@]}"; do
+        # Extract the question, options, and correct answer from the question bank
+        question=$(echo "$question_data" | cut -d'|' -f1)
+        options=$(echo "$question_data" | cut -d'|' -f2)
+        correct_answer=$(echo "$question_data" | cut -d'|' -f3)
+
+        # Display the question and options
         echo "Question: $question"
-        echo "Options: 1) Option A  2) Option B  3) Option C  4) Option D"
+        echo "Options: $options"
         echo -n "Please select your answer (1-4): "
 
         # Start timer for timeout
@@ -99,29 +109,42 @@ function test_screen() {
             answer_time=$TIMEOUT
         fi
 
+        # Save the answer with the question and time
         echo "$question,$answer,$answer_time" >> "$ANSWER_FILE"
         log "Answered question '$question' with answer '$answer' in $answer_time seconds"
+
+        # Check if the answer is correct
+        if [ "$answer" == "$correct_answer" ]; then
+            score=$((score + 1))  # Example: increase score if answer is correct
+        fi
     done
+
+    echo "Test completed. Your score: $score out of ${#QUESTION_BANK[@]}"
+    log "Test completed with score: $score"
 }
 
 # Function for the main test menu
 function test_menu() {
-    clear
-    echo "----------------------------"
-    echo " Test Menu"
-    echo "----------------------------"
-    echo "1. Take Test"
-    echo "2. View Test Results"
-    echo "3. Back to Main Menu"
-    echo -n "Please select an option: "
-    read test_option
+    while true; do
+        clear
+        echo "----------------------------"
+        echo " Test Menu"
+        echo "----------------------------"
+        echo "1. Take Test"
+        echo "2. View Test Results"
+        echo "3. Log Out"
+        echo "4. Exit"
+        echo -n "Please select an option: "
+        read test_option
 
-    case $test_option in
-        1) test_screen ;;
-        2) view_test_screen ;;
-        3) return ;;
-        *) echo "Invalid option, try again!" ;;
-    esac
+        case $test_option in
+            1) test_screen ;;  # Take Test
+            2) view_test_screen ;;  # View Test Results
+            3) echo "Logging out..."; return ;;  # Log Out (returns to login menu)
+            4) exit 0 ;;  # Exit the script
+            *) echo "Invalid option, try again!" ;;  # Handle invalid input
+        esac
+    done
 }
 
 # Function to handle sign-in
@@ -130,7 +153,7 @@ function sign_in() {
     read sign_in_id
     echo -n "Enter Password: "
     read -s sign_in_password
-    echo
+    echo 
 
     # Check if user exists in the credentials file
     user_found=0
@@ -144,7 +167,7 @@ function sign_in() {
     if [ $user_found -eq 1 ]; then
         log "User signed in: $sign_in_id"
         USER_ID=$sign_in_id
-        test_menu
+        test_menu  # This directs the user directly to the test menu after successful login
     else
         echo "Invalid credentials! Please try again."
         log "Failed sign-in attempt for user $sign_in_id"
@@ -204,9 +227,9 @@ while true; do
     read user_choice
 
     case $user_choice in
-        1) sign_in ;;
-        2) sign_up ;;
-        3) exit 0 ;;
-        *) echo "Invalid choice. Please select a valid option!" ;;
+        1) sign_in ;;  
+        2) sign_up ;;  
+        3) exit 0 ;;  
+        *) echo "Invalid choice. Please select a valid option!" ;;  # Handle invalid input
     esac
 done
